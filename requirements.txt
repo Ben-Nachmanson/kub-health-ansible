@@ -1,0 +1,3 @@
+# Python requirements for the Ansible control node.
+# Install with: pip install -r requirements.txt
+kubernetes>=28.1.0

@@ -1,0 +1,71 @@
+---
+- name: Run Kubernetes health checks
+  kub_health_check:
+    kubeconfig: "{{ kub_health_kubeconfig }}"
+    context: "{{ kub_health_context | default(omit, true) }}"
+    namespace: "{{ kub_health_namespace | default(omit, true) }}"
+    severity_threshold: "{{ kub_health_severity_threshold }}"
+    checks: "{{ kub_health_checks }}"
+  register: health
+  delegate_to: localhost
+
+- name: Display health summary
+  ansible.builtin.debug:
+    msg: |
+      ============================================================
+       CLUSTER HEALTH: {{ health.summary.overall_health | upper }}
+      ============================================================
+       Findings:  {{ health.summary.total_findings }}
+         Critical:  {{ health.summary.critical_count }}
+         Warning:   {{ health.summary.warning_count }}
+         Info:      {{ health.summary.info_count }}
+       Cluster:
+         Nodes:      {{ health.summary.node_count }}
+         Pods:       {{ health.summary.pod_count }}
+         Namespaces: {{ health.summary.namespace_count }}
+      ============================================================
+
+- name: Display critical findings
+  ansible.builtin.debug:
+    msg: "[CRITICAL] {{ item.resource }} - {{ item.message }}"
+  loop: "{{ health.findings | selectattr('severity', 'equalto', 'critical') | list }}"
+  loop_control:
+    label: "{{ item.resource }}"
+  when: health.summary.critical_count > 0
+
+- name: Display warning findings
+  ansible.builtin.debug:
+    msg: "[WARNING] {{ item.resource }} - {{ item.message }}"
+  loop: "{{ health.findings | selectattr('severity', 'equalto', 'warning') | list }}"
+  loop_control:
+    label: "{{ item.resource }}"
+  when: health.summary.warning_count > 0
+
+- name: Display correlation groups
+  ansible.builtin.debug:
+    msg: |
+      --- Correlation Group ({{ item.severity | upper }}) ---
+      Root cause: {{ item.root_cause.message if item.root_cause else 'Unknown' }}
+      Resource:   {{ item.root_cause.resource if item.root_cause else 'N/A' }}
+      Symptoms:   {{ item.symptoms | length }}
+      Affected:   {{ item.affected_resources | join(', ') }}
+      Summary:    {{ item.summary }}
+  loop: "{{ health.correlation_groups }}"
+  loop_control:
+    label: "Group {{ item.id }}"
+  when: health.correlation_groups | length > 0
+
+- name: Save report to file
+  ansible.builtin.copy:
+    content: "{{ health.report_text }}"
+    dest: "{{ kub_health_report_file }}"
+    mode: "0644"
+  delegate_to: localhost
+  when: kub_health_report_file | length > 0
+
+- name: Fail on critical issues
+  ansible.builtin.fail:
+    msg: >-
+      Cluster health check found {{ health.summary.critical_count }} critical issue(s).
+      Review the findings above and remediate before proceeding.
+  when: kub_health_fail_on_critical | bool and health.summary.critical_count > 0

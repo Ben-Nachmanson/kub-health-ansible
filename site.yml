@@ -1,0 +1,19 @@
+---
+# kub-health-ansible - Kubernetes cluster health investigation
+#
+# Runs entirely on the control node. Nothing is installed on targets.
+# All K8s API calls are read-only (list/get). Zero writes to the cluster.
+#
+# Usage:
+#   ansible-playbook site.yml
+#   ansible-playbook site.yml -e kub_health_namespace=my-app
+#   ansible-playbook site.yml -e kub_health_fail_on_critical=true
+#   ansible-playbook site.yml -e kub_health_context=prod-cluster
+#   ansible-playbook site.yml -e kub_health_report_file=/tmp/health-report.txt
+
+- name: Kubernetes Cluster Health Investigation
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  roles:
+    - kub_health

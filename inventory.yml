@@ -1,0 +1,34 @@
+---
+# Inventory template for checking multiple clusters.
+#
+# Usage:
+#   ansible-playbook -i inventory.yml site.yml
+#   ansible-playbook -i inventory.yml site.yml --limit prod
+#
+# Each host entry represents a cluster to check.
+# Since everything runs on the control node (connection: local),
+# "hosts" are logical names for your clusters, not actual servers.
+
+all:
+  hosts:
+    localhost:
+      ansible_connection: local
+      # Default cluster (current kubeconfig context)
+
+  children:
+    clusters:
+      hosts:
+        dev:
+          ansible_connection: local
+          kub_health_kubeconfig: "~/.kube/config"
+          kub_health_context: "dev-cluster"
+        staging:
+          ansible_connection: local
+          kub_health_kubeconfig: "~/.kube/config"
+          kub_health_context: "staging-cluster"
+        prod:
+          ansible_connection: local
+          kub_health_kubeconfig: "~/.kube/config"
+          kub_health_context: "prod-cluster"
+          kub_health_fail_on_critical: true
+          kub_health_severity_threshold: warning

@@ -1,0 +1,29 @@
+---
+# Path to kubeconfig file on the control node
+kub_health_kubeconfig: "{{ ansible_env.HOME }}/.kube/config"
+
+# Kubeconfig context to use (omit or empty for current context)
+kub_health_context: ""
+
+# Limit checks to a single namespace (omit or empty for all namespaces)
+kub_health_namespace: ""
+
+# Minimum severity to include: info, warning, critical
+kub_health_severity_threshold: info
+
+# Which health check modules to run
+kub_health_checks:
+  - pods
+  - nodes
+  - resources
+  - deployments
+  - events
+  - networking
+  - storage
+  - rbac
+
+# Fail the playbook if critical issues are found
+kub_health_fail_on_critical: false
+
+# Save the full report to a file (empty = don't save)
+kub_health_report_file: ""
